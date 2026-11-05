@@ -1,0 +1,27 @@
+name: Publicar Windows 1.0.3
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  release:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'release/windows-1.0.3' && github.actor == 'douglasmidiacerta'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify and publish installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          case "$SOURCE" in
+            https://sdmnt*.oaiusercontent.com/files/*/raw\?*) ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --silent --show-error --retry 2 "$SOURCE" -o installer.zip
+          echo '4cdebb1cde98497a80a8157a2c3eba14db5fbeaa0ad1ed449c1c78a089192467  installer.zip' | sha256sum --check
+          file=AutoShow-Indoor-Setup-1.0.3.exe
+          unzip -p installer.zip "$file" > "$file"
+          echo '3e2cf27f679a4fcd3347f5d72248fafde05d18b664effd84cbc9c8b337dffd80  AutoShow-Indoor-Setup-1.0.3.exe' | sha256sum --check
+          gh release create v1.0.3 "$file" --repo "$GITHUB_REPOSITORY" --target main --title 'AutoShow Indoor para Windows 1.0.3' --notes 'Inclui o reinício pelo painel Minhas TVs. Instale por cima da versão atual para manter o pareamento.'
